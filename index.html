@@ -491,16 +491,39 @@ async function syncFromAPI() {
 function applyAPIData(data) {
   if (data.menu && data.menu.days && data.menu.days.length === 7) {
     DAYS = data.menu.days;
-    // APIデータにsubがない場合、DEFAULT_DAYSのsubを補完
+    // APIデータにsubがない場合、DEFAULT_DAYSのsubを種目名で照合して補完
+    function namesMatch(a, b) {
+      var al = a.toLowerCase(), bl = b.toLowerCase();
+      if (al.indexOf(bl) !== -1 || bl.indexOf(al) !== -1) return true;
+      var map = {run:'ラン',bike:'バイク',rest:'レスト'};
+      for (var k in map) {
+        if ((al.indexOf(k) !== -1 && bl.indexOf(map[k]) !== -1) ||
+            (bl.indexOf(k) !== -1 && al.indexOf(map[k]) !== -1)) return true;
+      }
+      return false;
+    }
     DAYS.forEach(function(day, di) {
       var defDay = DEFAULT_DAYS[di];
       if (!defDay) return;
       day.blocks.forEach(function(block, bi) {
+        // まずインデックス一致で試す
         var defBlock = defDay.blocks[bi];
-        if (!defBlock) return;
         block.items.forEach(function(item, ii) {
-          var defItem = defBlock.items[ii];
-          if (!item.sub && defItem && defItem.sub) item.sub = defItem.sub;
+          var matched = null;
+          if (defBlock && defBlock.items[ii] && namesMatch(item.name, defBlock.items[ii].name)) {
+            matched = defBlock.items[ii];
+          } else {
+            for (var dbi = 0; dbi < defDay.blocks.length && !matched; dbi++) {
+              var defItems = defDay.blocks[dbi].items;
+              for (var dii = 0; dii < defItems.length; dii++) {
+                if (namesMatch(item.name, defItems[dii].name)) { matched = defItems[dii]; break; }
+              }
+            }
+          }
+          if (matched) {
+            if (!item.sub && matched.sub) item.sub = matched.sub;
+            if (matched.name) item.name = matched.name;
+          }
         });
       });
     });
