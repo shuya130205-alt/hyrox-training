@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.json">
+<title>HTP for Shuya</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#000;--dark:#0d0d0d;--surface:#151515;--surface2:#1c1c1c;--surface3:#242424;
+  --yellow:#FFE500;--yellow-dim:#bfab00;
+  --white:#fff;--gray:#999;--gray2:#555;--gray3:#333;
+  --radius:12px;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;
+  background:var(--black);color:var(--white);
+  min-height:100dvh;
+  -webkit-user-select:none;user-select:none;
+  padding-bottom:calc(80px + env(safe-area-inset-bottom,20px));
+}
+
+/* ===== NAV ===== */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;justify-content:center;gap:0;
+  background:var(--dark);
+  border-top:1px solid var(--gray3);
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));
+  z-index:100;
+}
+.nav-btn{
+  flex:1;max-width:160px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--gray);font-size:10px;
+  font-weight:600;padding:6px 0;cursor:pointer;
+}
+.nav-btn.active{color:var(--yellow)}
+.nav-btn svg{width:22px;height:22px;fill:currentColor}
+
+/* ===== PAGE ===== */
+.page{display:none}
+.page.active{display:block}
+
+/* ===== HEADER ===== */
+.header{
+  padding:56px 20px 18px;
+  background:var(--black);
+  border-bottom:1px solid var(--gray3);
+}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.hyrox-badge{
+  background:var(--yellow);color:var(--black);
+  font-size:10px;font-weight:800;letter-spacing:1.5px;
+  padding:3px 8px;border-radius:4px;
+}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.header-sub{font-size:12px;color:var(--gray);margin-top:2px}
+
+/* ===== TARGETS ===== */
+.targets{
+  display:flex;flex-wrap:wrap;gap:6px;padding:12px 20px;
+  border-bottom:1px solid #1a1a1a;
+}
+.target{
+  font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;
+  background:var(--surface2);color:var(--gray);
+  border:1px solid transparent;
+}
+.target.warn{border-color:var(--yellow);color:var(--yellow)}
+
+/* ===== DAY TABS ===== */
+.day-tabs{
+  display:flex;gap:2px;padding:14px 16px 6px;overflow-x:auto;
+  scrollbar-width:none;
+}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{
+  flex:1;min-width:44px;text-align:center;
+  padding:10px 4px 8px;border-radius:10px;
+  font-size:12px;font-weight:700;
+  background:transparent;color:var(--gray2);
+  border:none;cursor:pointer;transition:all .15s;
+}
+.day-tab .num{display:block;font-size:16px;margin-top:2px;font-weight:700}
+.day-tab.active{background:var(--yellow);color:var(--black)}
+.day-tab.today:not(.active){border:1px solid var(--gray3)}
+
+/* ===== PROGRESS ===== */
+.progress-section{padding:8px 20px 14px}
+.progress-row{display:flex;align-items:center;gap:10px}
+.progress-bar{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--yellow);border-radius:2px;transition:width .3s}
+.progress-label{font-size:12px;color:var(--gray);font-weight:600;min-width:60px;text-align:right}
+
+/* ===== BLOCKS ===== */
+.day-content{padding:0 16px 20px}
+.day-content.hidden{display:none}
+.block{
+  background:var(--surface);border-radius:var(--radius);
+  padding:16px;margin-bottom:10px;
+  border:1px solid var(--gray3);
+}
+.block-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.block-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0}
+.block-title{font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+.block-subtitle{font-size:11px;color:var(--gray);margin:-4px 0 10px 16px}
+
+/* ===== EXERCISES ===== */
+.exercise-wrap{
+  padding:11px 0;border-bottom:1px solid var(--gray3);
+}
+.exercise-wrap:last-child{border-bottom:none}
+.exercise{
+  display:flex;align-items:flex-start;gap:10px;
+}
+.exercise-checks{display:flex;gap:6px;flex-shrink:0;margin-top:1px}
+.check{
+  appearance:none;-webkit-appearance:none;
+  width:24px;height:24px;border-radius:6px;
+  border:2px solid var(--gray3);
+  cursor:pointer;position:relative;transition:all .15s;
+  background:transparent;
+}
+.check:checked{background:var(--yellow);border-color:var(--yellow)}
+.check:checked::after{
+  content:'';position:absolute;left:7px;top:3px;
+  width:6px;height:12px;border:solid var(--black);
+  border-width:0 2.5px 2.5px 0;transform:rotate(45deg);
+}
+.check.set2{border-style:dashed}
+.check.set2:checked{border-style:solid}
+.exercise-label{
+  font-size:14px;font-weight:500;line-height:1.6;flex:1;
+  cursor:pointer;
+}
+.exercise-label .sub{display:block;font-size:11px;color:var(--gray);margin-top:1px}
+.exercise-wrap.done .exercise-label{color:var(--gray2);text-decoration:line-through}
+
+/* ===== HISTORY PAGE ===== */
+.history-header{
+  padding:56px 20px 16px;
+  border-bottom:1px solid var(--gray3);
+}
+.history-header h1{font-size:20px;font-weight:700}
+.history-header p{font-size:12px;color:var(--gray);margin-top:4px}
+.history-toggle{
+  display:flex;gap:2px;padding:14px 16px 0;
+}
+.history-toggle button{
+  flex:1;padding:8px;border-radius:8px;
+  background:var(--surface);border:none;
+  color:var(--gray);font-size:13px;font-weight:600;
+  cursor:pointer;
+}
+.history-toggle button.active{background:var(--yellow);color:var(--black)}
+
+.week-card{
+  background:var(--surface);border-radius:var(--radius);
+  margin:12px 16px;padding:16px;
+  border:1px solid var(--gray3);
+}
+.week-card-title{font-size:13px;font-weight:700;margin-bottom:12px}
+.week-grid{display:flex;gap:4px}
+.week-day{
+  flex:1;text-align:center;
+}
+.week-day-label{font-size:10px;color:var(--gray);margin-bottom:6px;font-weight:600}
+.week-day-bar{
+  height:60px;background:var(--surface2);border-radius:6px;
+  position:relative;overflow:hidden;
+}
+.week-day-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--yellow);border-radius:6px;
+  transition:height .3s;
+}
+.week-day-pct{font-size:10px;color:var(--gray);margin-top:4px;font-weight:600}
+
+.month-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  gap:3px;padding:16px;
+}
+.month-label{font-size:10px;color:var(--gray);text-align:center;font-weight:600;padding:4px 0}
+.month-cell{
+  aspect-ratio:1;border-radius:4px;
+  background:var(--surface2);position:relative;
+}
+.month-cell.future{opacity:.3}
+.month-cell.l1{background:#3d3800}
+.month-cell.l2{background:#7a7000}
+.month-cell.l3{background:#b8a800}
+.month-cell.l4{background:var(--yellow)}
+.month-cell-tip{
+  font-size:8px;color:var(--gray);text-align:center;
+  position:absolute;bottom:1px;left:0;right:0;
+}
+
+.streak-row{
+  display:flex;justify-content:space-around;
+  padding:16px;gap:8px;
+}
+.streak-card{
+  flex:1;background:var(--surface);border-radius:var(--radius);
+  padding:14px;text-align:center;border:1px solid var(--gray3);
+}
+.streak-num{font-size:28px;font-weight:800;color:var(--yellow)}
+.streak-label{font-size:10px;color:var(--gray);margin-top:2px;font-weight:600}
+
+/* ===== MEMO ===== */
+.memo-toggle{
+  background:none;border:none;color:var(--gray2);font-size:10px;
+  cursor:pointer;padding:2px 6px;margin-left:auto;flex-shrink:0;
+}
+.memo-toggle.has-memo{color:var(--yellow)}
+.memo-area{
+  display:none;margin-top:8px;padding:0 0 0 34px;
+}
+.memo-area.open{display:block}
+.memo-input{
+  width:100%;background:var(--surface2);border:1px solid var(--gray3);
+  border-radius:8px;color:var(--white);font-size:12px;
+  padding:8px 10px;resize:none;font-family:inherit;
+  line-height:1.5;min-height:32px;
+}
+.memo-input:focus{outline:none;border-color:var(--yellow)}
+.memo-input::placeholder{color:var(--gray2)}
+
+/* ===== WEEKLY REPORT BANNER ===== */
+.weekly-banner{
+  display:none;margin:12px 16px;padding:16px;
+  background:var(--surface);border:1px solid var(--yellow);
+  border-radius:var(--radius);position:relative;
+}
+.weekly-banner.show{display:block}
+.weekly-banner-close{
+  position:absolute;top:8px;right:10px;
+  background:none;border:none;color:var(--gray);font-size:18px;cursor:pointer;
+}
+.weekly-banner-title{
+  font-size:14px;font-weight:700;color:var(--yellow);margin-bottom:8px;
+}
+.weekly-banner-stat{font-size:28px;font-weight:800;color:var(--white);margin-bottom:4px}
+.weekly-banner-sub{font-size:12px;color:var(--gray);line-height:1.6}
+.weekly-banner-bar{
+  display:flex;gap:4px;margin-top:10px;
+}
+.weekly-banner-dot{
+  flex:1;height:6px;border-radius:3px;background:var(--surface2);
+}
+.weekly-banner-dot.done{background:var(--yellow)}
+
+/* ===== SYNC STATUS ===== */
+.sync-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 20px;font-size:10px;color:var(--gray2);
+  border-bottom:1px solid var(--gray3);
+}
+.sync-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--gray2);flex-shrink:0;
+}
+.sync-dot.ok{background:#4caf50}
+.sync-dot.loading{background:var(--yellow);animation:pulse 1s infinite}
+.sync-dot.error{background:#f44}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ===== LOADING ===== */
+.loading-overlay{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:60px 20px;text-align:center;
+}
+.loading-spinner{
+  width:32px;height:32px;border:3px solid var(--gray3);
+  border-top-color:var(--yellow);border-radius:50%;
+  animation:spin .8s linear infinite;margin-bottom:12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ===== TRAINING PAGE ===== -->
+<div class="page active" id="pageTrain">
+  <div class="header">
+    <div class="header-top">
+      <span class="hyrox-badge">HYROX</span>
+    </div>
+    <h1>Training Program</h1>
+    <div class="header-sub">For Shuya &mdash; Open Solo sub 70</div>
+  </div>
+
+  <div class="sync-bar" id="syncBar">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncText">オフラインデータ</span>
+  </div>
+
+  <div class="targets" id="targetsBar"></div>
+
+  <div class="weekly-banner" id="weeklyBanner">
+    <button class="weekly-banner-close" id="weeklyBannerClose">&times;</button>
+    <div class="weekly-banner-title">📊 今週のまとめ</div>
+    <div class="weekly-banner-stat" id="weeklyBannerStat"></div>
+    <div class="weekly-banner-sub" id="weeklyBannerSub"></div>
+    <div class="weekly-banner-bar" id="weeklyBannerBar"></div>
+  </div>
+
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="progress-section">
+    <div class="progress-row">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0%</div>
+    </div>
+  </div>
+  <div id="dayContainer"></div>
+</div>
+
+<!-- ===== HISTORY PAGE ===== -->
+<div class="page" id="pageHistory">
+  <div class="history-header">
+    <h1>Progress</h1>
+    <p>トレーニング達成状況</p>
+  </div>
+  <div class="streak-row" id="streakRow"></div>
+  <div class="history-toggle" id="historyToggle">
+    <button class="active" data-view="week">週間</button>
+    <button data-view="month">月間</button>
+  </div>
+  <div id="historyContent"></div>
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<div class="bottom-nav">
+  <button class="nav-btn active" data-page="pageTrain">
+    <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>
+    <span>メニュー</span>
+  </button>
+  <button class="nav-btn" data-page="pageHistory">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
+    <span>進捗</span>
+  </button>
+</div>
+
+<script>
+// ===== CONFIG =====
+// Google Apps Script のデプロイURL（設定後にここに貼り付け）
+const API_URL = 'https://script.google.com/macros/s/AKfycbzm82e122si8Swoy_v5iEDgIKo2MHOV5DVXhWfOb18X9mNk-vaiRLD3BBiseFz5TDabnA/exec';
+
+// ===== DEFAULT DATA (フォールバック用) =====
+const DEFAULT_DAYS = [
+  { name:'月', label:'月曜日', blocks:[
+    { title:'Push + Arms Strength', subtitle:'45min / 4-6 reps', items:[
+      {name:'Bench Press',sets:1},{name:'Shoulder Press',sets:1},{name:'Incline Dumbbell Press',sets:1},
+      {name:'Dumbbell Flyes',sets:1},{name:'Dips',sets:1},{name:'Bicep Curls',sets:1}
+    ]},
+    { title:'Z2 有酸素', subtitle:'ラン / バイク / ステアマスター', items:[{name:'Z2 セッション',sets:1}]}
+  ]},
+  { name:'火', label:'火曜日', blocks:[
+    { title:'背中 Strength', items:[{name:'Pull Ups',sets:1},{name:'バーベルベントオーバーロウ',sets:1},{name:'デッドリフト',sets:1}]},
+    { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
+      {name:'Run 2min',sets:1},{name:'Row 300m',sets:1},
+      {name:'Sled Pull 12.5×2 (25m)',sub:'レースweight+40kg',sets:1},
+      {name:'BBJ 25m or プレートBBJ 16',sets:1},{name:'WB 25 (6kg) or 20 (9kg)',sets:1}
+    ]}
+  ]},
+  { name:'水', label:'水曜日', blocks:[
+    { title:'Time走', subtitle:'60min', items:[
+      {name:'20min @ 5:30/km',sets:1},{name:'30min @ 4:30/km',sets:1},{name:'10min @ 4:15/km',sub:'なるべく速く',sets:1}
+    ]},
+    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sets:1}]}
+  ]},
+  { name:'木', label:'木曜日', blocks:[
+    { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
+      {name:'Assault Bike 2min',sub:'300w以上',sets:1},{name:'Ski 250m',sub:'レースペース -3~5秒',sets:1},
+      {name:'Sled Push 12.5×2 (25m)',sub:'レースweight+40kg',sets:1},
+      {name:'Lunges 50m (20kg)',sets:1},{name:'WB 25 or 20',sets:1}
+    ]},
+    { title:'Z2 有酸素', subtitle:'50min', items:[{name:'Run / Bike / ステアマスター',sets:1}]}
+  ]},
+  { name:'金', label:'金曜日', rest:true, blocks:[
+    { title:'REST or Z2', items:[{name:'Rest or 軽めのZ2',sets:1}]}
+  ]},
+  { name:'土', label:'土曜日', blocks:[
+    { title:'HYROX Workout', subtitle:'2 sets (no rest)', items:[
+      {name:'Run 1000m',sub:'レースペース',sets:2},{name:'Ski 500m',sub:'レースペース',sets:2},
+      {name:'Run 1000m',sets:2},{name:'Sled Pull 25m',sub:'レースweight+30kg',sets:2},
+      {name:'Run 1000m',sets:2},{name:'Lunges 50m (20kg)',sets:2},
+      {name:'Run 1000m',sets:2},{name:'WB 50 (6kg)',sets:2}
+    ]},
+    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sets:1}]}
+  ]},
+  { name:'日', label:'日曜日', blocks:[
+    { title:'下半身 Strength', subtitle:'45min', items:[
+      {name:'Barbell Back Lunge',sub:'4-6 reps × 3 sets',sets:1},
+      {name:'Single-leg Smith Calf Raise',sub:'50kg × 13 reps × 3 sets',sets:1},
+      {name:'Walking Lunge (30kg)',sub:'90s on / 90s off × 5 rounds',sets:1}
+    ]},
+    { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
+      {name:'Assault Bike 2min',sub:'300w以上',sets:1},{name:'Ski 250m',sub:'レースペース',sets:1},
+      {name:'Sled Push 12.5×2 (25m)',sub:'レースweight+40kg',sets:1},
+      {name:'BBJ 40m or 20 プレートBBJ',sets:1},{name:'WB 25 or 20',sets:1}
+    ]},
+    { title:'クールダウン', items:[{name:'30min Z2',sets:1}]}
+  ]}
+];
+
+const DEFAULT_TARGETS = [
+  {name:'Run',time:'4:30',warn:false},{name:'Ski',time:'4:30',warn:false},
+  {name:'Sled',time:'2:35',warn:true},{name:'Push',time:'3:40',warn:true},
+  {name:'BBJ',time:'3:30',warn:true},{name:'Row',time:'4:15',warn:false},
+  {name:'FC',time:'1:55',warn:false},{name:'Lunges',time:'3:20',warn:true},
+  {name:'WB',time:'4:30',warn:false},{name:'Rox',time:'5:11',warn:false}
+];
+
+// ===== STATE =====
+let DAYS = DEFAULT_DAYS;
+let TARGETS = DEFAULT_TARGETS;
+let activeDayIdx = 0;
+
+// ===== STORAGE =====
+function load(key, fb) { try { return JSON.parse(localStorage.getItem(key)) || fb; } catch { return fb; } }
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function getMemos() { return load('htp-memos-v1', {}); }
+function setMemo(dkey, id, val) {
+  const m = getMemos();
+  if (!m[dkey]) m[dkey] = {};
+  if (val) m[dkey][id] = val; else delete m[dkey][id];
+  save('htp-memos-v1', m);
+}
+function dateKey(d) {
+  const dd = d || new Date();
+  return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+}
+function getChecks() { return load('htp-checks-v2', {}); }
+function setCheck(dkey, id, val) {
+  const c = getChecks(); if (!c[dkey]) c[dkey] = {}; c[dkey][id] = val; save('htp-checks-v2', c);
+}
+
+// ===== SYNC =====
+function setSyncStatus(state, text) {
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + state;
+  label.textContent = text;
+}
+
+async function syncFromAPI() {
+  if (!API_URL) {
+    // API未設定 → キャッシュ or デフォルトを使用
+    const cached = load('htp-api-cache', null);
+    if (cached) {
+      applyAPIData(cached);
+      setSyncStatus('ok', 'キャッシュデータ');
+    } else {
+      setSyncStatus('', 'オフライン（デフォルトデータ）');
+    }
+    return;
+  }
+
+  setSyncStatus('loading', '同期中...');
+
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    save('htp-api-cache', data);
+    applyAPIData(data);
+    setSyncStatus('ok', '最終同期: ' + new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}));
+  } catch (err) {
+    const cached = load('htp-api-cache', null);
+    if (cached) {
+      applyAPIData(cached);
+      setSyncStatus('error', 'オフライン（キャッシュ使用）');
+    } else {
+      setSyncStatus('error', '接続エラー');
+    }
+  }
+}
+
+function applyAPIData(data) {
+  if (data.menu && data.menu.days && data.menu.days.length === 7) {
+    DAYS = data.menu.days;
+    if (data.menu.targets) TARGETS = data.menu.targets;
+    // ヘッダー更新
+    if (data.menu.goal) {
+      document.querySelector('.header-sub').textContent = 'For Shuya — ' + data.menu.goal;
+    }
+  }
+  renderTargets();
+  renderTrain();
+}
+
+// ===== TARGETS =====
+function renderTargets() {
+  const bar = document.getElementById('targetsBar');
+  bar.innerHTML = '';
+  TARGETS.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'target' + (t.warn ? ' warn' : '');
+    span.textContent = t.name + ' ' + t.time;
+    bar.appendChild(span);
+  });
+}
+
+// ===== TRAINING PAGE =====
+function getTodayIdx() { const js = new Date().getDay(); return js === 0 ? 6 : js - 1; }
+
+function getWeekDates() {
+  const now = new Date(); const jsDay = now.getDay();
+  const mon = new Date(now); mon.setDate(now.getDate() - (jsDay === 0 ? 6 : jsDay - 1));
+  return Array.from({length:7}, (_,i) => { const d = new Date(mon); d.setDate(mon.getDate()+i); return d; });
+}
+
+function renderTrain() {
+  const todayIdx = getTodayIdx();
+  activeDayIdx = todayIdx;
+  const weekDates = getWeekDates();
+  const tabs = document.getElementById('dayTabs');
+  const container = document.getElementById('dayContainer');
+  tabs.innerHTML = ''; container.innerHTML = '';
+
+  DAYS.forEach((day, di) => {
+    const date = weekDates[di];
+    const tab = document.createElement('button');
+    tab.className = 'day-tab' + (di === todayIdx ? ' active today' : '');
+    tab.innerHTML = day.name + '<span class="num">' + date.getDate() + '</span>';
+    tab.onclick = () => switchDay(di);
+    tabs.appendChild(tab);
+
+    const dkey = dateKey(date);
+    const dayChecks = (getChecks()[dkey]) || {};
+    const view = document.createElement('div');
+    view.className = 'day-content' + (di !== todayIdx ? ' hidden' : '');
+    view.id = 'dayView-' + di; view.dataset.datekey = dkey;
+
+    day.blocks.forEach((block, bi) => {
+      const bEl = document.createElement('div'); bEl.className = 'block';
+      let html = '<div class="block-header"><div class="block-dot"></div><div class="block-title">' + block.title + '</div></div>';
+      if (block.subtitle) html += '<div class="block-subtitle">' + block.subtitle + '</div>';
+      const dayMemos = getMemos()[dkey] || {};
+      block.items.forEach((item, ii) => {
+        const sets = item.sets || 1;
+        const allDone = Array.from({length:sets}, (_,si) => dayChecks[bi+'-'+ii+'-'+si] || false).every(Boolean);
+        const memoId = bi+'-'+ii;
+        const memoVal = dayMemos[memoId] || '';
+        html += '<div class="exercise-wrap' + (allDone ? ' done' : '') + '">';
+        html += '<div class="exercise"><div class="exercise-checks">';
+        for (let si = 0; si < sets; si++) {
+          const cid = bi+'-'+ii+'-'+si, checked = dayChecks[cid] || false;
+          html += '<input type="checkbox" class="check'+(si>0?' set2':'')+'" data-cid="'+cid+'" data-dkey="'+dkey+'"'+(checked?' checked':'')+'>';
+        }
+        html += '</div><label class="exercise-label">' + item.name;
+        if (item.sub) html += '<span class="sub">' + item.sub + '</span>';
+        html += '</label><button class="memo-toggle'+(memoVal?' has-memo':'')+'" data-memo="'+memoId+'">📝</button></div>';
+        html += '<div class="memo-area" id="memo-'+dkey+'-'+memoId+'">';
+        html += '<textarea class="memo-input" data-dkey="'+dkey+'" data-mid="'+memoId+'" placeholder="重量・感想メモ..." rows="1">'+memoVal+'</textarea>';
+        html += '</div></div>';
+      });
+      bEl.innerHTML = html; view.appendChild(bEl);
+    });
+    container.appendChild(view);
+  });
+
+  document.querySelectorAll('.check').forEach(cb => {
+    cb.addEventListener('change', function() {
+      setCheck(this.dataset.dkey, this.dataset.cid, this.checked);
+      const ex = this.closest('.exercise-wrap');
+      ex.classList.toggle('done', [...ex.querySelectorAll('.check')].every(c => c.checked));
+      updateProgress();
+    });
+  });
+
+  document.querySelectorAll('.memo-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const wrap = this.closest('.exercise-wrap');
+      const area = wrap.querySelector('.memo-area');
+      area.classList.toggle('open');
+      if (area.classList.contains('open')) area.querySelector('.memo-input').focus();
+    });
+  });
+
+  document.querySelectorAll('.memo-input').forEach(ta => {
+    ta.addEventListener('input', function() {
+      setMemo(this.dataset.dkey, this.dataset.mid, this.value);
+      const btn = this.closest('.day-content').querySelector('.memo-toggle[data-memo="'+this.dataset.mid+'"]');
+      btn.classList.toggle('has-memo', !!this.value);
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+  });
+
+  updateProgress();
+}
+
+function switchDay(idx) {
+  activeDayIdx = idx;
+  document.querySelectorAll('.day-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.day-content').forEach((v,i) => v.classList.toggle('hidden', i!==idx));
+  updateProgress();
+}
+
+function updateProgress() {
+  const view = document.querySelector('.day-content:not(.hidden)');
+  if (!view) return;
+  const boxes = view.querySelectorAll('.check');
+  const checked = view.querySelectorAll('.check:checked');
+  const pct = boxes.length > 0 ? Math.round((checked.length / boxes.length) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = pct + '%';
+}
+
+// ===== HISTORY =====
+function getDayCompletion(dkey, dayIdx) {
+  const dayChecks = (getChecks()[dkey]) || {};
+  const day = DAYS[dayIdx]; let total = 0, done = 0;
+  day.blocks.forEach((block, bi) => {
+    block.items.forEach((item, ii) => {
+      for (let si = 0; si < (item.sets||1); si++) { total++; if (dayChecks[bi+'-'+ii+'-'+si]) done++; }
+    });
+  });
+  return total > 0 ? done / total : 0;
+}
+
+function renderHistory(view) {
+  const content = document.getElementById('historyContent');
+  const streakRow = document.getElementById('streakRow');
+  const checks = getChecks();
+  let streak = 0, totalDays = 0;
+  const today = new Date();
+
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const dk = dateKey(d), jsDay = d.getDay(), dayIdx = jsDay === 0 ? 6 : jsDay - 1;
+    const pct = getDayCompletion(dk, dayIdx);
+    if (i < 30 && pct > 0) totalDays++;
+    if (i === 0 && pct === 0) continue;
+    if (pct >= 0.5) streak++; else break;
+  }
+
+  streakRow.innerHTML =
+    '<div class="streak-card"><div class="streak-num">'+streak+'</div><div class="streak-label">連続日数</div></div>' +
+    '<div class="streak-card"><div class="streak-num">'+totalDays+'</div><div class="streak-label">今月のトレ日</div></div>';
+
+  if (view === 'week') renderWeekView(content); else renderMonthView(content);
+}
+
+function renderWeekView(container) {
+  container.innerHTML = ''; const today = new Date();
+  for (let w = 0; w < 4; w++) {
+    const card = document.createElement('div'); card.className = 'week-card';
+    const monDate = new Date(today); const jsDay = monDate.getDay();
+    monDate.setDate(monDate.getDate() - (jsDay===0?6:jsDay-1) - (w*7));
+    const endDate = new Date(monDate); endDate.setDate(monDate.getDate()+6);
+    const title = (w===0?'今週':w===1?'先週':w+'週前') + ' ('+(monDate.getMonth()+1)+'/'+monDate.getDate()+' - '+(endDate.getMonth()+1)+'/'+endDate.getDate()+')';
+    let html = '<div class="week-card-title">'+title+'</div><div class="week-grid">';
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(monDate); date.setDate(monDate.getDate()+d);
+      const dk = dateKey(date), pct = getDayCompletion(dk, d), isFuture = date > today, pctInt = Math.round(pct*100);
+      html += '<div class="week-day"><div class="week-day-label">'+DAYS[d].name+'</div><div class="week-day-bar">';
+      if (!isFuture) html += '<div class="week-day-fill" style="height:'+pctInt+'%"></div>';
+      html += '</div><div class="week-day-pct">'+(isFuture?'-':pctInt+'%')+'</div></div>';
+    }
+    html += '</div>'; card.innerHTML = html; container.appendChild(card);
+  }
+}
+
+function renderMonthView(container) {
+  container.innerHTML = ''; const today = new Date();
+  const year = today.getFullYear(), month = today.getMonth();
+  const lastDay = new Date(year, month+1, 0);
+  let startDow = new Date(year, month, 1).getDay(); if (startDow===0) startDow=7;
+  const card = document.createElement('div'); card.className = 'week-card';
+  let html = '<div class="week-card-title">'+year+'年'+(month+1)+'月</div><div class="month-grid">';
+  ['月','火','水','木','金','土','日'].forEach(d => { html += '<div class="month-label">'+d+'</div>'; });
+  for (let i = 1; i < startDow; i++) html += '<div></div>';
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(year, month, d), dk = dateKey(date);
+    const jsDay = date.getDay(), dayIdx = jsDay===0?6:jsDay-1;
+    const pct = getDayCompletion(dk, dayIdx), isFuture = date > today;
+    let level = '';
+    if (!isFuture && pct > 0) { if (pct<=.25)level='l1';else if(pct<=.5)level='l2';else if(pct<=.75)level='l3';else level='l4'; }
+    html += '<div class="month-cell '+level+(isFuture?' future':'')+'"><div class="month-cell-tip">'+d+'</div></div>';
+  }
+  html += '</div>'; card.innerHTML = html; container.appendChild(card);
+}
+
+// ===== NAV =====
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const pageId = this.dataset.page;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b === this));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === pageId));
+    if (pageId === 'pageHistory') renderHistory('week');
+  });
+});
+
+document.getElementById('historyToggle').addEventListener('click', function(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  this.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+  renderHistory(btn.dataset.view);
+});
+
+// ===== WEEKLY REPORT =====
+function checkWeeklyReport() {
+  const now = new Date();
+  const jsDay = now.getDay();
+  const hour = now.getHours();
+  const showReport = (jsDay === 0 && hour >= 18) || jsDay === 1;
+  const weekKey = 'htp-weekly-' + dateKey(getWeekDates()[0]);
+  if (!showReport || load(weekKey, false)) return;
+
+  const weekDates = getWeekDates();
+  let doneDays = 0;
+  const dayResults = [];
+  for (let i = 0; i < 7; i++) {
+    const pct = getDayCompletion(dateKey(weekDates[i]), i);
+    dayResults.push(pct);
+    if (pct >= 0.5) doneDays++;
+  }
+
+  const banner = document.getElementById('weeklyBanner');
+  document.getElementById('weeklyBannerStat').textContent = doneDays + ' / 7 日完了';
+  const msgs = [
+    'まだまだこれから！💪', 'いいスタート！', '順調です！', 'いい調子！🔥',
+    '素晴らしい！', 'ほぼ完璧！🏆', '完璧な一週間！✨', 'パーフェクト！🎉'
+  ];
+  document.getElementById('weeklyBannerSub').textContent = msgs[doneDays];
+  const bar = document.getElementById('weeklyBannerBar');
+  bar.innerHTML = dayResults.map((pct, i) =>
+    '<div class="weekly-banner-dot' + (pct >= 0.5 ? ' done' : '') + '" title="' + DAYS[i].name + '"></div>'
+  ).join('');
+  banner.classList.add('show');
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('HTP 週間レポート', {
+      body: '今週は ' + doneDays + '/7 日完了！' + msgs[doneDays],
+      icon: './icon-192.png'
+    });
+  }
+}
+
+document.getElementById('weeklyBannerClose').addEventListener('click', function() {
+  const weekKey = 'htp-weekly-' + dateKey(getWeekDates()[0]);
+  save(weekKey, true);
+  document.getElementById('weeklyBanner').classList.remove('show');
+});
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ===== INIT =====
+renderTargets();
+renderTrain();
+syncFromAPI();
+requestNotificationPermission();
+setTimeout(checkWeeklyReport, 1000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
