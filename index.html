@@ -491,38 +491,58 @@ async function syncFromAPI() {
 function applyAPIData(data) {
   if (data.menu && data.menu.days && data.menu.days.length === 7) {
     DAYS = data.menu.days;
-    // APIデータにsubがない場合、DEFAULT_DAYSのsubを種目名で照合して補完
-    function namesMatch(a, b) {
-      var al = a.toLowerCase(), bl = b.toLowerCase();
-      if (al.indexOf(bl) !== -1 || bl.indexOf(al) !== -1) return true;
-      var map = {run:'ラン',bike:'バイク',rest:'レスト'};
-      for (var k in map) {
-        if ((al.indexOf(k) !== -1 && bl.indexOf(map[k]) !== -1) ||
-            (bl.indexOf(k) !== -1 && al.indexOf(map[k]) !== -1)) return true;
-      }
-      return false;
-    }
-    DAYS.forEach(function(day, di) {
-      var defDay = DEFAULT_DAYS[di];
-      if (!defDay) return;
-      day.blocks.forEach(function(block, bi) {
-        // まずインデックス一致で試す
-        var defBlock = defDay.blocks[bi];
-        block.items.forEach(function(item, ii) {
-          var matched = null;
-          if (defBlock && defBlock.items[ii] && namesMatch(item.name, defBlock.items[ii].name)) {
-            matched = defBlock.items[ii];
-          } else {
-            for (var dbi = 0; dbi < defDay.blocks.length && !matched; dbi++) {
-              var defItems = defDay.blocks[dbi].items;
-              for (var dii = 0; dii < defItems.length; dii++) {
-                if (namesMatch(item.name, defItems[dii].name)) { matched = defItems[dii]; break; }
+    // 種目名の置換マップ（API名→表示名）
+    var nameMap = {
+      'バーベルベントオーバーロウ':'Barbell Bent Over Row',
+      'デッドリフト':'Deadlift',
+      'Pull ups':'Pull Ups'
+    };
+    // sub補完マップ（種目名の部分一致→sub）
+    var subMap = {
+      'Bench Press':'80kg×8回(3セット) / 70kg×10回(1セット)',
+      'Shoulder Press':'60kg×10回(3セット) / 50kg×限界まで',
+      'Incline Dumbbell':'片手25kg×10回(3セット)',
+      'Dumbbell Flyes':'片手12kg×10回(3セット)',
+      'Dips':'自重×10回(3セット)',
+      'Pull ups':'自重×10回(3セット)',
+      'バーベルベントオーバーロウ':'50kg×10回(3セット)',
+      'デッドリフト':'100kg×10回(3セット)',
+      'Barbell back lunge':'60kg×12回(3セット)',
+      'Walking lunge':'30kg×6往復',
+      'Single-leg Smith':'50kg×13回(3セット)'
+    };
+    DAYS.forEach(function(day) {
+      day.blocks.forEach(function(block) {
+        // Z2ブロック（アイテム空でタイトルに内容含む）にsub補完
+        var tl = block.title.toLowerCase();
+        if (block.items.length === 0 && /z2/.test(tl)) {
+          if (/run|ラン/.test(tl) && /bike|ステアマスター/.test(tl)) {
+            block.items.push({name:'Run / Bike / ステアマスター',sub:'6:00-6:30/km ペース',sets:1});
+          } else if (/bike|ステアマスター/.test(tl)) {
+            block.items.push({name:'Bike or ステアマスター',sub:'心拍数120-130',sets:1});
+          } else if (/run|ラン/.test(tl)) {
+            block.items.push({name:'ラン',sub:'6:00-6:30/km ペース',sets:1});
+          } else if (/rest/.test(tl)) {
+            block.items.push({name:'ラン',sub:'6:00-6:30/km ペース',sets:1});
+          }
+        }
+        // 不正アイテムを除去（reps/sets/rounds/secだけの行はsub情報の誤パース）
+        block.items = block.items.filter(function(item) {
+          return !/^\d+[\-–]\d+\s*reps/i.test(item.name) &&
+                 !/^\d+\s*sec\s/i.test(item.name);
+        });
+        block.items.forEach(function(item) {
+          // 名前が長すぎる場合（reps/sets情報が名前に含まれている）を整理
+          item.name = item.name.replace(/\s*\d+\s*kg\s*×\s*\d+\s*reps\s*×\s*\d+\s*sets\s*\(each leg\)/i, '');
+          // 名前置換
+          if (nameMap[item.name]) item.name = nameMap[item.name];
+          // sub補完
+          if (!item.sub) {
+            for (var key in subMap) {
+              if (item.name.toLowerCase().indexOf(key.toLowerCase()) !== -1) {
+                item.sub = subMap[key]; break;
               }
             }
-          }
-          if (matched) {
-            if (!item.sub && matched.sub) item.sub = matched.sub;
-            if (matched.name) item.name = matched.name;
           }
         });
       });
