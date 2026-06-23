@@ -353,14 +353,22 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzm82e122si8Swoy_v5iEDg
 // ===== DEFAULT DATA (フォールバック用) =====
 const DEFAULT_DAYS = [
   { name:'月', label:'月曜日', blocks:[
-    { title:'Push + Arms Strength', subtitle:'45min / 4-6 reps', items:[
-      {name:'Bench Press',sets:1},{name:'Shoulder Press',sets:1},{name:'Incline Dumbbell Press',sets:1},
-      {name:'Dumbbell Flyes',sets:1},{name:'Dips',sets:1},{name:'Bicep Curls',sets:1}
+    { title:'Push + Arms Strength', subtitle:'45min', items:[
+      {name:'Bench Press',sub:'80kg×8回(3セット) / 70kg×10回(1セット)',sets:1},
+      {name:'Shoulder Press',sub:'60kg×10回(3セット) / 50kg×限界まで',sets:1},
+      {name:'Incline Dumbbell Press',sub:'片手25kg×10回(3セット)',sets:1},
+      {name:'Dumbbell Flyes',sub:'片手12kg×10回(3セット)',sets:1},
+      {name:'Dips',sub:'自重×10回(3セット)',sets:1},
+      {name:'Bicep Curls',sets:1}
     ]},
     { title:'Z2 有酸素', subtitle:'ラン / バイク / ステアマスター', items:[{name:'Z2 セッション',sets:1}]}
   ]},
   { name:'火', label:'火曜日', blocks:[
-    { title:'背中 Strength', items:[{name:'Pull Ups',sets:1},{name:'バーベルベントオーバーロウ',sets:1},{name:'デッドリフト',sets:1}]},
+    { title:'背中 Strength', items:[
+      {name:'Pull Ups',sub:'自重×10回(3セット)',sets:1},
+      {name:'Barbell Bent Over Row',sub:'50kg×10回(3セット)',sets:1},
+      {name:'Deadlift',sub:'100kg×10回(3セット)',sets:1}
+    ]},
     { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
       {name:'Run 2min',sets:1},{name:'Row 300m',sets:1},
       {name:'Sled Pull 12.5×2 (25m)',sub:'レースweight+40kg',sets:1},
@@ -371,7 +379,7 @@ const DEFAULT_DAYS = [
     { title:'Time走', subtitle:'60min', items:[
       {name:'20min @ 5:30/km',sets:1},{name:'30min @ 4:30/km',sets:1},{name:'10min @ 4:15/km',sub:'なるべく速く',sets:1}
     ]},
-    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sets:1}]}
+    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sub:'心拍数120-130',sets:1}]}
   ]},
   { name:'木', label:'木曜日', blocks:[
     { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
@@ -379,10 +387,10 @@ const DEFAULT_DAYS = [
       {name:'Sled Push 12.5×2 (25m)',sub:'レースweight+40kg',sets:1},
       {name:'Lunges 50m (20kg)',sets:1},{name:'WB 25 or 20',sets:1}
     ]},
-    { title:'Z2 有酸素', subtitle:'50min', items:[{name:'Run / Bike / ステアマスター',sets:1}]}
+    { title:'Z2 有酸素', subtitle:'50min', items:[{name:'ラン',sub:'6:00-6:30/km ペース',sets:1}]}
   ]},
   { name:'金', label:'金曜日', rest:true, blocks:[
-    { title:'REST or Z2', items:[{name:'Rest or 軽めのZ2',sets:1}]}
+    { title:'Z2 ラン', subtitle:'60min', items:[{name:'ラン',sub:'6:00-6:30/km ペース',sets:1}]}
   ]},
   { name:'土', label:'土曜日', blocks:[
     { title:'HYROX Workout', subtitle:'2 sets (no rest)', items:[
@@ -391,13 +399,13 @@ const DEFAULT_DAYS = [
       {name:'Run 1000m',sets:2},{name:'Lunges 50m (20kg)',sets:2},
       {name:'Run 1000m',sets:2},{name:'WB 50 (6kg)',sets:2}
     ]},
-    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sets:1}]}
+    { title:'Z2 有酸素', subtitle:'45min', items:[{name:'Bike or ステアマスター',sub:'心拍数120-130',sets:1}]}
   ]},
   { name:'日', label:'日曜日', blocks:[
     { title:'下半身 Strength', subtitle:'45min', items:[
-      {name:'Barbell Back Lunge',sub:'4-6 reps × 3 sets',sets:1},
-      {name:'Single-leg Smith Calf Raise',sub:'50kg × 13 reps × 3 sets',sets:1},
-      {name:'Walking Lunge (30kg)',sub:'90s on / 90s off × 5 rounds',sets:1}
+      {name:'バーベルバックランジ',sub:'60kg×12回(3セット)',sets:1},
+      {name:'シングルレッグ スミスマシン カーフレイズ',sub:'50kg×13回(3セット)',sets:1},
+      {name:'ウォーキングランジ',sub:'30kg×6往復',sets:1}
     ]},
     { title:'HYROX Workout', subtitle:'45min AMRAP (no rest)', items:[
       {name:'Assault Bike 2min',sub:'300w以上',sets:1},{name:'Ski 250m',sub:'レースペース',sets:1},
@@ -483,6 +491,19 @@ async function syncFromAPI() {
 function applyAPIData(data) {
   if (data.menu && data.menu.days && data.menu.days.length === 7) {
     DAYS = data.menu.days;
+    // APIデータにsubがない場合、DEFAULT_DAYSのsubを補完
+    DAYS.forEach(function(day, di) {
+      var defDay = DEFAULT_DAYS[di];
+      if (!defDay) return;
+      day.blocks.forEach(function(block, bi) {
+        var defBlock = defDay.blocks[bi];
+        if (!defBlock) return;
+        block.items.forEach(function(item, ii) {
+          var defItem = defBlock.items[ii];
+          if (!item.sub && defItem && defItem.sub) item.sub = defItem.sub;
+        });
+      });
+    });
     if (data.menu.targets) TARGETS = data.menu.targets;
     // ヘッダー更新
     if (data.menu.goal) {
